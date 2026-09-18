@@ -5,8 +5,10 @@ model: fable
 ---
 
 > **真源。** 本文件由 `math-physics` 插件装载，Claude Code 从插件缓存读取，**不读**
-> `~/.claude/agents/`。个人副本 `~/.claude/agents/deriver.md` 应在插件安装验证通过后删除，
-> 避免两处并存造成漂移。
+> `~/.claude/agents/`。该处的个人副本已在 2026-09-18 迁移时移除（备份留在
+> `~/.claude/agents-backup/`）。
+>
+> 注册名带插件命名空间：调用时用 **`math-physics:deriver`**，不是裸 `deriver`。
 
 # Deriver — 纯推导执行器
 

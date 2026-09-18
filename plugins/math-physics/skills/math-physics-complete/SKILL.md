@@ -238,8 +238,14 @@ If the user picks **最高档 fable**:
    ## 论文公式槽（仅 论文公式解释）
    源公式原文 ＋ 原编号 ＋ 它在文中的角色
    ```
-3. **Dispatch**: Agent tool targeting `deriver`. Receive the full derivation content as the tool
-   result.
+3. **Dispatch**: Agent tool targeting the derivation subagent. **Its registered name depends on how
+   this skill was installed** — loaded from the `math-physics` plugin it is `math-physics:deriver`
+   (namespaced by the plugin); installed standalone under `~/.claude/agents/` it is plain
+   `deriver`. **Use the name the harness actually lists as available** (plugin packaging renamed
+   it once already, 2026-09-18, and a stale name fails the dispatch outright). If neither name is
+   listed, STOP and tell the user the derivation subagent is not registered rather than deriving
+   inline silently — the tier they chose would not be honoured. Receive the full derivation
+   content as the tool result.
 4. **Hand off**: route that content into the delivery steps below; do NOT re-derive on the main
    model. First run this **mechanical receipt check** on what `deriver` returned — it is a scan,
    not a re-derivation:
