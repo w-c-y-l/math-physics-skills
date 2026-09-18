@@ -27,5 +27,11 @@ Claude Code 的数学/物理专用 skill 集。目前收录一个 skill：`math-
 ### 目录
 
 ```
-SKILL.md     skill 定义与全部规则
+SKILL.md            skill 定义与全部规则
+agents/deriver.md   「最高档」分支所用的推导子代理定义（仓库副本）
 ```
+
+### 实装与同步
+
+`agents/deriver.md` 只是**仓库副本**：Claude Code 只从 `~/.claude/agents/deriver.md` 加载，
+本副本仅供版本控制与备份。**改动任一侧后必须同步另一侧**，否则改动不生效。

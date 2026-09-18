@@ -198,17 +198,65 @@ If the user picks **最高档 fable**:
    clearly mismatched with the base URL (e.g. the switching tool wrote only base/token), STOP and
    ask the user to fix the slot mapping or fall back to 当前会话模型. Never silently send `fable`
    as the built-in Claude model to a non-Anthropic endpoint.
-2. **Package ONE brief (single call — do not drip-feed)**:
-   - the problem restated in words; chosen coordinate system / basis / symbols / units / signature;
-     assumptions and applicability conditions;
-   - which Derivation-Structure sections to include and which checks to keep;
-   - source equation(s) with their numbers when explaining a paper; for a modification, the target
-     section's CURRENT content (read via browser on the main model first) plus the intended change
-     and the document's existing conventions.
+2. **Package ONE brief (single call — do not drip-feed)**, using the template below. The brief is
+   the **ONLY carrier of this skill's contract**: `deriver` cannot see SKILL.md, so **any
+   constraint not written into the brief does not exist for the subagent**. Fill EVERY slot; write
+   `N/A` for inapplicable ones; never drop a slot. Slot text in Chinese so the brief reads
+   uniformly regardless of the document language.
+
+   ```
+   ## 任务类型
+   新推导 | 定向修改 | 论文公式解释
+   ## 问题复述（先文字，后公式）
+   ## 约定（缺一不可；未定项写「待确认」，不要留空）
+   - 坐标系 / 基 / 自由度与维数
+   - 单位制与常数取值（如 ħ=1, m=1）＋ 恢复量纲的方法
+   - 度规签名 / 符号约定（如 t=-iτ，并写明必须得到 e^{iS}=e^{-S_E} 的哪个方向）
+   - 记号约定（算子 hat、指标、测度记号等）
+   ## 假设与适用条件
+   ## 需要的章节
+   按「Derivation Structure」展开的具体节清单（编号 + 标题），与 Step 0 选的取舍一致
+   ## 要保留的检验项
+   逐项点名（极限 / 量纲 / 已知结果对照 / 性质），并给出要对照的已知形式
+   ## 内容纪律（内联，不给 deriver 留解释空间）
+   1 先文字后公式；2 逐符号定义（含指标/常量/算符/函数/参数）；
+   3 公式不省求和与积分范围、极限、域、边界与初始条件、归一化；
+   4 展示中间步骤；禁止用「化简后可得」「不难得到」跳过与本任务主线相关的代数
+     —— 点名本次必须逐步写出的关键步骤；
+   5 收尾检查量纲、符号约定、极限情形、与假设的一致性（极限检查保持紧凑：点极限名与已知形）；
+   6 歧义与缺失定义列为「待确认项」，不得静默编造；
+   7 需要符号表时给表格：符号 / 含义 / 量纲 / 备注。
+   ## 输出格式
+   Markdown 结构（`## 1. 标题`）＋ LaTeX；行内 \(...\)、行间 \[...\]；禁 $...$；禁代码块；
+   不写 \documentclass 或 preamble；不加寒暄或收束语。
+   ## 禁止事项
+   不建文件、不写磁盘、不碰浏览器、不选目的地、不做排版套壳。
+   ## 本次特别要求
+   （可选）针对易错点的定向要求
+   ## 增量修改槽（仅 定向修改）
+   目标段 CURRENT 内容（主模型先经浏览器读出）＋ 改动意图 ＋ 文档既有约定（单位/签名/记号/符号表）
+   ## 论文公式槽（仅 论文公式解释）
+   源公式原文 ＋ 原编号 ＋ 它在文中的角色
+   ```
 3. **Dispatch**: Agent tool targeting `deriver`. Receive the full derivation content as the tool
    result.
-4. **Hand off**: route that content into the delivery steps below. Write NO intermediate files; do
-   NOT re-derive on the main model.
+4. **Hand off**: route that content into the delivery steps below; do NOT re-derive on the main
+   model. First run this **mechanical receipt check** on what `deriver` returned — it is a scan,
+   not a re-derivation:
+   All scans below run over the returned text **already in your context**. Do NOT write it to a
+   file, do NOT call a tool, do NOT re-print it — each item costs output tokens only for the
+   verdict, not for the content.
+   - **Delimiter scan**: any `$...$` / `$$...$$` left in the returned content? (expected: none)
+   - **Slot coverage**: does the returned section list match the brief's 需要的章节 exactly — no
+     dropped section, no invented one?
+   - **Skipped-algebra scan**: look for `化简后可得` / `after simplification` / `不难得到`; every hit
+     must correspond to a step the brief explicitly marked trivial.
+   - **待确认项**: if the subagent listed unresolved items, surface them to the user — do NOT
+     silently resolve them on the main model.
+   - **Spot-check**: re-verify 2–3 load-bearing results (sign conventions, a stated limit, a
+     normalization constant) against known forms. Cheap; catches the failures that matter.
+   Write NO intermediate files **for derivation content**; a temp file is allowed ONLY for the
+   assembled `.tex` that Step 7's LONG-SOURCE RULE must base64 — never for the derivation text.
 
 If the user picks **当前会话模型**: derive inline on the main model following the Formula Rendering
 Rules and the Required Answer Contract. This step ends.
@@ -253,28 +301,97 @@ Ask which key parts the user has already changed, to decide how much to read:
 Whatever the scope, **understand the article independently** before editing: revise the output and,
 if needed, change direction to avoid duplicate / incorrect / mismatched content — confirm the new
 text is consistent with the document's existing conventions (units, signature, notation, symbol
-table) and does not repeat an existing section. Then `dispatch` the edit and compile.
+table) and does not repeat an existing section.
+
+**Appending a new section (the common modification).** Do NOT rewrite the whole document in order
+to append to it — re-encoding the existing body is expensive and risks breaking content that
+already compiles. Insert **in place**, at the anchor, with a zero-width change:
+
+1. **Before inserting**, compute the anchor and check it in the same evaluate:
+   `const i = doc.lastIndexOf('\\end{document}')`, and assert that `\\end{document}` occurs
+   **exactly once**. A count of 0 or >1 makes the anchor ambiguous — STOP and ask the user; never
+   guess an offset.
+2. Dispatch `{from: i, to: i, insert: text}`, where `text` is the new section(s). **Put the
+   inserted content on the Step 7 LONG-SOURCE RULE path** — an appended section of a few KB is
+   still a long payload, and gzip applies to it just the same.
+3. **After inserting**, return from that same evaluate: the `\\end{document}` count (must still be
+   1), the full `\\section{...}` list (must equal the previous list plus the new sections, in
+   order), and the unchanged preamble head. A count ≠ 1 or an out-of-order section list means the
+   anchor was wrong — re-read the document; do not retry the same insert.
 
 ### Step 7 — Write, then hand off compilation to the user
 
 - **Read** (one call): `browser_evaluate` → `document.querySelector('.cm-content').cmView.view.state.doc.toString()`.
   Never read `.cm-content` `innerText` (CodeMirror virtualizes; returns only visible lines).
-- **Write**: base64 → `atob` + `TextDecoder('utf-8')` → `dispatch`. Have the SAME evaluate return
+- **Write (short payloads, ≲3000 chars)**: base64 → `atob` + `TextDecoder('utf-8')` → `dispatch`.
+  Have the SAME evaluate return
   the verification (preamble head + `\section{...}` list + new length) — no separate verify call.
   LONG-SOURCE RULE: when the decoded `.tex` exceeds ~3000 chars (base64 > ~4000 chars), do NOT
   inline the whole payload in one evaluate — oversized single inlines get corrupted/truncated
-  (observed `atob` failures). Instead: (1) split the base64 into segments of ≤2000 chars and
-  retrieve ALL segments in ONE batch shell call up front (`base64 -w0 file | fold -w 2000`), so no
-  repeated read round-trips later; (2) accumulate them in the page across separate evaluates, one
-  per segment, in order (`window.__TMP = (window.__TMP || "") + "<seg>"`) — no per-segment length
-  round-trip; (3) after the LAST segment only, verify the accumulated length ONCE against the file's
-  true base64 total (`base64 -w0 file | wc -c`), then do ONE final decode + `dispatch` +
-  verification. (Do NOT use `browser_run_code_unsafe`+`fs` for this — it needs the safety
-  classifier, is slower/unreliable, and runs in a sandbox that has neither `require` nor dynamic
-  `import`.)
+  (observed `atob` failures). **Use gzip transport by default** (measured on a 30 KB Chinese
+  `.tex`: 40420 → 13988 base64 chars, −65%), with the plain path as fallback. Payload size is
+  paid ~3× (your output + the `browser_evaluate` echo of your call + the read-back), so shrinking
+  it is the single highest-leverage saving in this workflow.
+  (1) **Retrieve everything in ONE batch shell call, up front.** First
+      `gzip -9 -nc <file> | base64 -w0 | wc -c` for the true total and the segment count
+      (`ceil(total/2000)`), then `gzip -9 -nc <file> | base64 -w0 | fold -w 2000`. **Always pass
+      `-n`**: without it gzip writes the temp file's NAME and mtime into the header, so the
+      "expected total" the assertion depends on silently varies with your temp path (measured on
+      one 3.5 KB file: 2956 chars with the name embedded vs 2932 with `-n`) and the payload bytes
+      are not reproducible. Gzip output is usually small enough to render inline; if it is still
+      persisted to a file, read it back in pages (Read `offset`/`limit`) — do NOT re-run the
+      command.
+  (2) **Store segments by INDEX, never by concatenation.** In the page:
+      `window.__SEG = window.__SEG || {}; window.__SEG[i] = "<seg>";`, one evaluate per segment at
+      ≤2000 chars. Index-keyed storage is order-independent, so **batch ~7 evaluates per message**
+      instead of one evaluate per round-trip. Do NOT use
+      `window.__TMP = (window.__TMP || "") + "<seg>"` — that is order-dependent and forces a
+      round-trip per segment (observed: 21 round-trips vs 3 batched messages).
+  (3) **Join, verify, inflate, dispatch, confirm — in ONE final evaluate.** Join `__SEG[1..N]` in
+      index order; assert `joined.length === <true total>`; `atob` → `Uint8Array`; inflate:
+      `new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))` →
+      `new Response(...).text()`; dispatch into CodeMirror; return the verification (preamble head
+      + `\section{...}` list + new char length) from that SAME call; set `window.__SEG = null`.
+      A length mismatch or an inflate throw means corruption — stop and re-push the offending
+      segment; do NOT dispatch a partial document.
+      **Fallback**: if `DecompressionStream` is unavailable, or inflate throws on a payload whose
+      length DID match, abandon gzip for this run and re-retrieve with
+      `base64 -w0 <file> | fold -w 2000`, decoding via `atob` → `Uint8Array` →
+      `TextDecoder('utf-8', {fatal:true})`. Say so in the status line; do not silently drop content.
+      **Integrity model — know which check does what, and do not invent a fourth.**
+      (a) `joined.length === <true total>` is BYTE-based (base64 encodes bytes): this is the
+          transport check. Keep it.
+      (b) gzip carries a CRC32 over the whole payload, so `DecompressionStream` THROWS on any
+          corruption. (a) + (b) together already prove transport integrity end to end.
+      (c) Structural checks on the result: `\end{document}` count, `\section{...}` list, preamble.
+      Report the resulting document length for the user, but **do NOT gate on it** —
+      `doc.toString().length` is in JS CHARS while any shell-derived total is in BYTES, and CJK
+      text makes them differ by the multi-byte overhead (observed 2026-09-18: 26856 chars against
+      a shell-byte expectation of 27776 → a FALSE corruption alarm on a perfectly good insert).
+      If a real char count is ever needed:
+      `iconv -f UTF-8 -t UTF-32LE < <file> | wc -c` ÷ 4 — and note Git Bash's `wc -m` reports
+      BYTES (non-UTF-8 locale), so it cannot be trusted. On any mismatch, recheck WHICH UNIT you
+      compared before re-pushing or aborting.
+  (Do NOT use `browser_run_code_unsafe`+`fs` for this — it needs the safety classifier, is
+  slower/unreliable, and runs in a sandbox that has neither `require` nor dynamic `import`.)
+  (Do NOT use a clipboard route either — e.g. `clip.exe` + `Control+v`. It would zero the
+  transport cost, but it overwrites the user's system clipboard and its failure mode is a paste
+  landing outside the editor, which the final length check cannot detect. Considered and rejected
+  2026-09-18; gzip is the sanctioned optimization.)
+  The staged `.tex` is a **transport artifact only**. Once the user confirms the compile it has
+  served its purpose: delete it, unless more edits to the same document are likely — in which case
+  keep it and say so in the status line, giving its path.
 - **Compile is the USER's job**: after `dispatch`, do NOT wait / click / boolean-confirm. Just ask
   「编译成功了吗？」. If 成功 → done. If 失败 → read only the `!`-prefixed error lines (one
   `browser_evaluate`) and propose a concrete fix.
+- **CJK missing-glyph check — a green compile is NOT a correct render.** For Chinese content,
+  `Missing character` warnings are not `!`-prefixed, so the error filter above never surfaces
+  them; yet they are the likeliest real defect in a Chinese document (uncommon punctuation such
+  as 〔〕 U+3014/3015 or 「」 may be absent from the CJK font — the compile succeeds and the glyph
+  is silently dropped). So on 「编译成功了吗？」 also ask the user to scan the log for
+  `Missing character`. Do NOT try to read the log programmatically: it requires opening the log
+  panel, which is a browser action beyond content injection and is not authorized, and the
+  selector is unverified.
 - Never screenshots; never whole-page snapshots; never full logs (only `!`-prefixed lines).
 
 ### Error handling — retry twice, then ask
