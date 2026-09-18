@@ -1,0 +1,20 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "math-physics-skills",
+  "description": "数学/物理推导 skill 与配套子代理：严谨公式、逐步推导、Overleaf 交付流程。",
+  "owner": {
+    "name": "YuLin Chen"
+  },
+  "plugins": [
+    {
+      "name": "math-physics",
+      "description": "严谨的数学/物理推导与 Overleaf 交付：逐符号定义、不跳步、量纲与极限检验；重推导可整体打包给最高推理档子代理。",
+      "author": {
+        "name": "YuLin Chen"
+      },
+      "category": "physics",
+      "source": "./plugins/math-physics",
+      "homepage": "https://github.com/w-c-y-l/math-physics-skills"
+    }
+  ]
+}

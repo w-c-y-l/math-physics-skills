@@ -1,0 +1,7 @@
+{
+  "name": "math-physics",
+  "description": "严谨的数学/物理推导与 Overleaf 交付。含 skill `math-physics-complete` 与子代理 `deriver`。",
+  "author": {
+    "name": "YuLin Chen"
+  }
+}

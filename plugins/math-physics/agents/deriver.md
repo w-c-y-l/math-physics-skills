@@ -4,8 +4,9 @@ description: 独立执行"纯推导核心"的子代理。仅在编排者需要�
 model: fable
 ---
 
-> **仓库副本。** 实装路径为 `~/.claude/agents/deriver.md`——Claude Code 只从实装路径加载，
-> 本副本仅供版本控制与备份。**改动任一侧后必须同步另一侧**，否则不生效。
+> **真源。** 本文件由 `math-physics` 插件装载，Claude Code 从插件缓存读取，**不读**
+> `~/.claude/agents/`。个人副本 `~/.claude/agents/deriver.md` 应在插件安装验证通过后删除，
+> 避免两处并存造成漂移。
 
 # Deriver — 纯推导执行器
 

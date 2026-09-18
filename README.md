@@ -1,12 +1,25 @@
 # math-physics-skills
 
-Claude Code 的数学/物理专用 skill 集。目前收录一个 skill：`math-physics-complete`。
+Claude Code 插件：数学/物理推导 skill ＋ 配套子代理。本仓库同时充当 **marketplace**，
+可直接通过 `/plugin` 安装。
 
-## math-physics-complete
+## 安装
 
-适用于一切需要严谨公式与逐步推导的场景：数学、理论物理、工程物理、控制论、力学、电磁学、量子/统计/连续介质物理、公式密集的文献阅读、推导、证明、量纲分析，以及产出 Overleaf 可直接编译的 LaTeX 文档。
+```
+/plugin marketplace add w-c-y-l/math-physics-skills
+/plugin install math-physics@math-physics-skills
+```
 
-### 它能做什么
+安装后 skill 的调用名带命名空间：`/math-physics:math-physics-complete`（按 description
+自动触发同样有效）。
+
+## 包含什么
+
+### skill：`math-physics-complete`
+
+适用于一切需要严谨公式与逐步推导的场景：数学、理论物理、工程物理、控制论、力学、电磁学、
+量子/统计/连续介质物理、公式密集的文献阅读、推导、证明、量纲分析，以及产出 Overleaf
+可直接编译的 LaTeX 文档。
 
 - **完整推导**：先文字复述问题，声明坐标系、号差、单位制与假设，再逐步推导，不跳步、不省略边界/初始条件。
 - **符号定义**：每个符号首次出现即定义；保留求和与积分范围、域与边界条件。
@@ -14,24 +27,39 @@ Claude Code 的数学/物理专用 skill 集。目前收录一个 skill：`math-
 - **符号表**：长推导附「符号 — 含义 — 单位」对照表，按类别分组。
 - **论文公式解释**：带原式编号，逐符号定义，讲清公式在文中的角色与前后衔接。
 
-### 交付方式
+交付方式：
 
 - **命令行**：以可渲染 LaTeX（`\(...\)` / `\[...\]`）直接输出推导。
-- **Overleaf**：生成 .tex 并写入项目（中文走 ctexart + XeLaTeX）；长源文件按分段 base64 规则安全注入。
-- **模型分级**：重推导核心可选打包给最高推理档子代理（fable 槽），提问/排版/交付等胶水流程留在便宜主会话，控制成本。
+- **Overleaf**：生成 .tex 并写入项目（中文走 ctexart + XeLaTeX）；长载荷走 gzip + 索引分段的注入通道。
+- **模型分级**：重推导核心可整体打包给最高推理档子代理（fable 槽），提问/排版/交付等胶水
+  流程留在主会话，控制成本。
 
-### 使用
+使用：触发 skill 后按门禁逐轮回答（内容计划 → 目的地 → 新写/改 → 模型档位），即可得到
+完整、可检查的推导交付。
 
-触发 skill 后按门禁逐轮回答（内容计划 → 目的地 → 新写/改 → 模型档位），即可得到完整、可检查的推导交付。
+### agent：`deriver`
 
-### 目录
+skill 的「最高档 fable」分支所用的推导执行器。它**必须是 agent 而非 skill**——因为 skill
+只能在当前会话模型上执行，换不了模型；只有子代理才能被解析到 fable 槽。
+只回传推导内容本身，不做排版、不碰浏览器、不选目的地。
+
+frontmatter 为 `model: fable`，由 harness 按 `ANTHROPIC_DEFAULT_FABLE_MODEL` 解析到当前
+provider 的最强推理档。**该解析在插件装载后是否仍然生效，需在首次安装后实测确认。**
+
+## 目录
 
 ```
-SKILL.md            skill 定义与全部规则
-agents/deriver.md   「最高档」分支所用的推导子代理定义（仓库副本）
+.claude-plugin/marketplace.json                     市场清单
+plugins/math-physics/
+├── .claude-plugin/plugin.json                      插件清单
+├── skills/math-physics-complete/SKILL.md           skill 定义与全部规则
+└── agents/deriver.md                               推导子代理定义
 ```
 
-### 实装与同步
+## 开发
 
-`agents/deriver.md` 只是**仓库副本**：Claude Code 只从 `~/.claude/agents/deriver.md` 加载，
-本副本仅供版本控制与备份。**改动任一侧后必须同步另一侧**，否则改动不生效。
+本仓库的开发工作副本即插件的来源。Claude Code 安装后会把插件克隆到自己的缓存目录，
+**不从本目录直接加载**。
+
+改动后需要让缓存刷新（`/plugin` 的更新流程；若未自动刷新，需提升 `plugin.json` 的
+`version` 字段后重装）。此流程在首次实际修改时确认。
