@@ -56,12 +56,30 @@ plugins/math-physics/
 └── agents/deriver.md                               推导子代理定义
 ```
 
-## 开发
+## 开发与更新
 
-本仓库的开发工作副本即插件的来源。Claude Code 安装后会把插件克隆到自己的缓存目录，
+本仓库的开发工作副本即插件的来源。Claude Code 安装后克隆到自己的缓存目录，
 **不从本目录直接加载**。
 
-插件按 **commit sha** 缓存（实测路径：
-`~/.claude/plugins/cache/math-physics-skills/math-physics/<sha 前 12 位>/`），
-因此**不需要手工升版本号**：推送新 commit 后用 `/plugin` 的更新流程刷新市场即可。
-缓存目录以 sha 区分，新旧版本不会互相覆盖。
+### 更新流程（实测）
+
+1. 在本仓库改文件，`git commit` ＋ `git push`
+2. `/plugin marketplace update math-physics-skills`
+   —— 实测输出 `Updated 1 marketplace (1 plugin bumped)`
+3. `/reload-plugins` 让当前会话重新加载
+
+**不要用第 3 步代替第 2 步**：`/reload-plugins` 只从**现有缓存**重新加载，不拉取新
+commit。实测：只跑 reload 时缓存仍停在旧 sha，改动不会生效。
+
+### 缓存机制
+
+按 **commit sha** 缓存，实测路径
+`~/.claude/plugins/cache/math-physics-skills/math-physics/<sha 前 12 位>/`。
+因此**不需要手工提升 `plugin.json` 的 `version` 字段**。新旧 sha 的缓存目录并存，
+回退只需切回旧 sha。
+
+### 改完记得核对调用名
+
+插件装载会把组件命名空间化：skill 是 `math-physics:math-physics-complete`，
+**agent 是 `math-physics:deriver`**（不是裸 `deriver`）。跨文件引用这类名字时，
+插件化会静默改变它们——改完务必端到端跑一次，别只做单点检查。
