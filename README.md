@@ -61,5 +61,7 @@ plugins/math-physics/
 本仓库的开发工作副本即插件的来源。Claude Code 安装后会把插件克隆到自己的缓存目录，
 **不从本目录直接加载**。
 
-改动后需要让缓存刷新（`/plugin` 的更新流程；若未自动刷新，需提升 `plugin.json` 的
-`version` 字段后重装）。此流程在首次实际修改时确认。
+插件按 **commit sha** 缓存（实测路径：
+`~/.claude/plugins/cache/math-physics-skills/math-physics/<sha 前 12 位>/`），
+因此**不需要手工升版本号**：推送新 commit 后用 `/plugin` 的更新流程刷新市场即可。
+缓存目录以 sha 区分，新旧版本不会互相覆盖。
